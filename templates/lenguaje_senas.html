@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lenguaje de Señas | Look-y</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0c0c2d 0%, #1a1a3e 50%, #2d1a4b 100%); font-family: 'Exo 2', sans-serif; color: #ffffff; min-height: 100vh; }
+    .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .glow-title { font-family: 'Orbitron', monospace; font-size: 2.5rem; background: linear-gradient(45deg, #00ff88, #00cc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .content { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; text-align: center; }
+    .btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 25px; color: white; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin: 10px; }
+    .btn-stop { background: linear-gradient(45deg, #ff4444, #cc0000); }
+    .btn-back { background: linear-gradient(45deg, #666666, #888888); }
+    .status { font-family: 'Orbitron', monospace; color: #00ff88; margin: 20px 0; }
+    .video-container { position: relative; max-width: 100%; margin: 20px auto; }
+    video { width: 100%; border-radius: 15px; border: 2px solid #00ccff; }
+    .resultado { background: rgba(0, 0, 0, 0.3); border-radius: 15px; padding: 20px; margin: 20px 0; }
+    .texto-reconocido { font-size: 2rem; color: #00ff88; margin: 15px 0; min-height: 60px; }
+    .warning { background: rgba(255, 165, 0, 0.1); border: 1px solid #ffaa00; border-radius: 10px; padding: 15px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="glow-title">👌 LENGUAJE DE SEÑAS</h1>
+      <p>Reconocimiento de lenguaje de señas en tiempo real</p>
+    </div>
+
+    <div class="content">
+      <div class="warning" id="warning">
+        <strong>⚠️ Importante:</strong> Esta función requiere acceso a la cámara.<br>
+        Por favor, permite el acceso cuando el navegador lo solicite.
+      </div>
+
+      <div class="status" id="status">🟢 Presiona INICIAR para comenzar</div>
+      
+      <button class="btn" onclick="iniciarReconocimiento()" id="btnIniciar">📹 INICIAR RECONOCIMIENTO</button>
+      <button class="btn btn-stop" onclick="detenerReconocimiento()" id="btnDetener" style="display:none;">⏹️ DETENER</button>
+      <button class="btn" onclick="limpiarTexto()" id="btnLimpiar" style="display:none;">🗑️ LIMPIAR TEXTO</button>
+      
+      <div class="video-container" id="videoContainer" style="display:none;">
+        <video id="video" autoplay playsinline></video>
+      </div>
+
+      <div class="resultado" id="resultado" style="display:none;">
+        <strong>Texto Reconocido:</strong><br>
+        <div class="texto-reconocido" id="textoReconocido">...</div>
+        <small id="modeInfo">Modo: Esperando...</small>
+      </div>
+
+      <button class="btn btn-back" onclick="volverInicio()">← VOLVER AL INICIO</button>
+    </div>
+  </div>
+
+  <script>
+    let videoStream = null;
+    let isRecognizing = false;
+    let captureInterval = null;
+    let canvas = null;
+    let context = null;
+
+    async function iniciarReconocimiento() {
+      try {
+        document.getElementById('status').textContent = '📸 Solicitando acceso a la cámara...';
+        document.getElementById('status').style.color = '#ffaa00';
+        
+        // Request camera access
+        videoStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            width: 640, 
+            height: 480,
+            facingMode: 'user'
+          } 
+        });
+        
+        const video = document.getElementById('video');
+        video.srcObject = videoStream;
+        
+        // Create hidden canvas for capturing frames
+        canvas = document.createElement('canvas');
+        canvas.width = 640;
+        canvas.height = 480;
+        context = canvas.getContext('2d');
+        
+        // Wait for video to be ready
+        video.onloadedmetadata = () => {
+          video.play();
+          
+          document.getElementById('warning').style.display = 'none';
+          document.getElementById('videoContainer').style.display = 'block';
+          document.getElementById('resultado').style.display = 'block';
+          document.getElementById('btnIniciar').style.display = 'none';
+          document.getElementById('btnDetener').style.display = 'inline-block';
+          document.getElementById('btnLimpiar').style.display = 'inline-block';
+          
+          document.getElementById('status').textContent = '✅ Cámara activada - Muestra señas con las manos';
+          document.getElementById('status').style.color = '#00ff88';
+          
+          isRecognizing = true;
+          
+          // Start capturing and sending frames
+          captureInterval = setInterval(capturarYEnviarFrame, 200); // 5 fps
+        };
+        
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('status').textContent = '❌ Error: No se pudo acceder a la cámara';
+        document.getElementById('status').style.color = '#ff4444';
+        alert('No se pudo acceder a la cámara. Por favor, verifica los permisos del navegador.');
+      }
+    }
+
+    function capturarYEnviarFrame() {
+      if (!isRecognizing) return;
+      
+      const video = document.getElementById('video');
+      if (video.readyState !== video.HAVE_ENOUGH_DATA) return;
+      
+      // Draw video frame to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
+      // Convert to base64
+      const imageData = canvas.toDataURL('image/jpeg', 0.7);
+      
+      // Send to server
+      fetch('/procesar_frame_senas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ frame: imageData })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.text !== undefined) {
+          document.getElementById('textoReconocido').textContent = data.text || '...';
+          document.getElementById('modeInfo').textContent = 
+            `Modo: ${data.mode === 'static' ? 'ESTÁTICO (Letras)' : 'DINÁMICO (Palabras)'} | Confianza: ${data.confidence.toFixed(0)}%`;
+        }
+      })
+      .catch(error => {
+        console.error('Error procesando frame:', error);
+      });
+    }
+
+    function detenerReconocimiento() {
+      isRecognizing = false;
+      
+      if (updateInterval) {
+        clearInterval(updateInterval);
+        updateInterval = null;
+      }
+      
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      
+      document.getElementById('videoContainer').style.display = 'none';
+      document.getElementById('btnIniciar').style.display = 'inline-block';
+      document.getElementById('btnDetener').style.display = 'none';
+      document.getElementById('btnLimpiar').style.display = 'none';
+      document.getElementById('status').textContent = '⏹️ Reconocimiento detenido';
+      document.getElementById('status').style.color = '#ff4444';
+    }
+
+    function limpiarTexto() {
+      fetch('/limpiar_texto_senas', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('textoReconocido').textContent = '...';
+          document.getElementById('status').textContent = '🗑️ Texto limpiado';
+          setTimeout(() => {
+            document.getElementById('status').textContent = '✅ Cámara activada - Muestra señas con las manos';
+          }, 2000);
+        })
+        .catch(error => {
+          console.error('Error limpiando texto:', error);
+        });
+    }
+
+    function volverInicio() {
+      detenerReconocimiento();
+      window.location.href = '/';
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      detenerReconocimiento();
+    });
+  </script>
+</body>
+</html>

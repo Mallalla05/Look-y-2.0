@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Voz a Texto | Look-y</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0c0c2d 0%, #1a1a3e 50%, #2d1a4b 100%); font-family: 'Exo 2', sans-serif; color: #ffffff; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .glow-title { font-family: 'Orbitron', monospace; font-size: 2.5rem; background: linear-gradient(45deg, #00ffff, #0080ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .content { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; text-align: center; }
+    .btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 25px; color: white; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin: 10px; }
+    .btn-stop { background: linear-gradient(45deg, #ff4444, #cc0000); }
+    .btn-back { background: linear-gradient(45deg, #666666, #888888); }
+    .resultado { background: rgba(0, 0, 0, 0.3); border-radius: 15px; padding: 20px; margin: 20px 0; min-height: 100px; text-align: left; }
+    .status { font-family: 'Orbitron', monospace; color: #00ff88; margin: 10px 0; }
+    .respuesta { background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; border-radius: 10px; padding: 15px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="glow-title">🎤 VOZ A TEXTO</h1>
+      <p>Habla y ve tu texto en tiempo real</p>
+    </div>
+
+    <div class="content">
+      <div class="status" id="status">🟢 Listo para grabar</div>
+      
+      <button class="btn" onclick="iniciarGrabacion()">🎤 INICIAR GRABACIÓN</button>
+      <button class="btn btn-stop" onclick="detenerGrabacion()">⏹️ DETENER</button>
+      
+      <div class="resultado">
+        <strong>Texto reconocido:</strong><br>
+        <div class="respuesta" id="textoResultado">Aquí aparecerá tu texto...</div>
+      </div>
+
+      <div class="respuesta" id="respuestaPython">
+        Esperando procesamiento...
+      </div>
+
+      <button class="btn btn-back" onclick="volverInicio()">← VOLVER AL INICIO</button>
+    </div>
+  </div>
+
+  <script>
+    let recognition;
+    let grabando = false;
+
+    function iniciarGrabacion() {
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Tu navegador no soporta reconocimiento de voz');
+        return;
+      }
+
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'es-ES';
+
+      recognition.onstart = function() {
+        grabando = true;
+        document.getElementById('status').textContent = '🎤 Grabando... Habla ahora';
+        document.getElementById('status').style.color = '#ffaa00';
+        document.getElementById('respuestaPython').textContent = 'Procesando...';
+      };
+
+      recognition.onresult = function(event) {
+        let texto = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          texto += event.results[i][0].transcript;
+        }
+        document.getElementById('textoResultado').textContent = texto;
+      };
+
+      recognition.onerror = function(event) {
+        document.getElementById('status').textContent = '❌ Error: ' + event.error;
+        document.getElementById('status').style.color = '#ff4444';
+      };
+
+      recognition.onend = function() {
+        if (grabando) {
+          recognition.start();
+        }
+      };
+
+      recognition.start();
+      
+      // Enviar comando a Python
+      fetch('/ejecutar_voz_a_texto')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById('respuestaPython').textContent = data;
+        })
+        .catch(error => {
+          document.getElementById('respuestaPython').textContent = '❌ Error: ' + error;
+        });
+    }
+
+    function detenerGrabacion() {
+      if (recognition) {
+        grabando = false;
+        recognition.stop();
+        document.getElementById('status').textContent = '⏹️ Grabación detenida';
+        document.getElementById('status').style.color = '#ff4444';
+      }
+    }
+
+    function volverInicio() {
+      if (recognition) {
+        recognition.stop();
+      }
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

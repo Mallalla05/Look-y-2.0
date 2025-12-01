@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traductor Voz | Look-y</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0c0c2d 0%, #1a1a3e 50%, #2d1a4b 100%); font-family: 'Exo 2', sans-serif; color: #ffffff; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .glow-title { font-family: 'Orbitron', monospace; font-size: 2.5rem; background: linear-gradient(45deg, #ffaa00, #ff8800); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .content { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; text-align: center; }
+    .btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 25px; color: white; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin: 10px; }
+    .btn-stop { background: linear-gradient(45deg, #ff4444, #cc0000); }
+    .btn-back { background: linear-gradient(45deg, #666666, #888888); }
+    select { width: 100%; padding: 15px; border: 1px solid #00ccff; border-radius: 10px; background: rgba(0, 0, 0, 0.3); color: white; font-size: 1rem; margin: 15px 0; }
+    .resultado { background: rgba(0, 0, 0, 0.3); border-radius: 15px; padding: 20px; margin: 20px 0; min-height: 100px; text-align: left; }
+    .status { font-family: 'Orbitron', monospace; color: #00ff88; margin: 10px 0; }
+    .respuesta { background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; border-radius: 10px; padding: 15px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="glow-title">🌐 TRADUCTOR DE VOZ</h1>
+      <p>Habla en español y traduce a otros idiomas</p>
+    </div>
+
+    <div class="content">
+      <div class="status" id="status">🟢 Selecciona idioma y presiona INICIAR</div>
+      
+      <select id="idiomaSelect">
+        <option value="en">Inglés</option>
+        <option value="fr">Francés</option>
+        <option value="de">Alemán</option>
+        <option value="it">Italiano</option>
+        <option value="ja">Japonés</option>
+      </select>
+      
+      <button class="btn" onclick="iniciarTraduccion()">🎤 INICIAR TRADUCCIÓN</button>
+      <button class="btn btn-stop" onclick="detenerTraduccion()">⏹️ DETENER</button>
+      
+      <div class="resultado">
+        <strong>Texto original:</strong><br>
+        <span id="textoOriginal">Esperando voz...</span><br><br>
+        <strong>Traducción:</strong><br>
+        <div class="respuesta" id="textoTrad">La traducción aparecerá aquí</div>
+      </div>
+
+      <button class="btn btn-back" onclick="volverInicio()">← VOLVER AL INICIO</button>
+    </div>
+  </div>
+
+  <script>
+    let recognition;
+    let grabando = false;
+
+    function iniciarTraduccion() {
+      const idioma = document.getElementById('idiomaSelect').value;
+      
+      if (!('webkitSpeechRecognition' in window)) {
+        alert('Tu navegador no soporta reconocimiento de voz');
+        return;
+      }
+
+      recognition = new webkitSpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'es-ES';
+
+      recognition.onstart = function() {
+        grabando = true;
+        document.getElementById('status').textContent = '🎤 Grabando... Habla ahora en español';
+        document.getElementById('status').style.color = '#ffaa00';
+      };
+
+      recognition.onresult = function(event) {
+        let texto = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          texto += event.results[i][0].transcript;
+        }
+        document.getElementById('textoOriginal').textContent = texto;
+        
+        // Enviar a Python para traducción
+        if (texto.trim() !== '') {
+          enviarATraducir(texto, idioma);
+        }
+      };
+
+      recognition.onerror = function(event) {
+        document.getElementById('status').textContent = '❌ Error: ' + event.error;
+        document.getElementById('status').style.color = '#ff4444';
+      };
+
+      recognition.onend = function() {
+        if (grabando) {
+          recognition.start();
+        }
+      };
+
+      recognition.start();
+    }
+
+    function enviarATraducir(texto, idioma) {
+      const datos = {
+        texto: texto,
+        idioma: idioma
+      };
+
+      document.getElementById('textoTrad').textContent = 'Procesando...';
+
+      fetch('/ejecutar_traductor_voz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(datos)
+      })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('textoTrad').textContent = data;
+        document.getElementById('status').textContent = '✅ Traducción completada';
+        document.getElementById('status').style.color = '#00ff88';
+      })
+      .catch(error => {
+        document.getElementById('textoTrad').textContent = '❌ Error: ' + error;
+        document.getElementById('status').textContent = '❌ Error en traducción';
+        document.getElementById('status').style.color = '#ff4444';
+      });
+    }
+
+    function detenerTraduccion() {
+      if (recognition) {
+        grabando = false;
+        recognition.stop();
+        document.getElementById('status').textContent = '⏹️ Traducción detenida';
+        document.getElementById('status').style.color = '#ff4444';
+      }
+    }
+
+    function volverInicio() {
+      if (recognition) {
+        recognition.stop();
+      }
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Look-y | Carrito Inteligente</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0c0c2d 0%, #1a1a3e 50%, #2d1a4b 100%); font-family: 'Exo 2', sans-serif; color: #ffffff; min-height: 100vh; }
+    .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 40px; }
+    .glow-title { font-family: 'Orbitron', monospace; font-size: 3.5rem; font-weight: 900; background: linear-gradient(45deg, #00ffff, #0080ff, #a200ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; text-shadow: 0 0 30px rgba(0, 255, 255, 0.5); margin-bottom: 10px; }
+    .subtitle { font-size: 1.2rem; color: #88ccff; opacity: 0.8; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px; margin-bottom: 40px; }
+    .card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; padding: 30px 25px; text-align: center; transition: all 0.3s ease; }
+    .card:hover { transform: translateY(-10px); border-color: rgba(0, 255, 255, 0.3); box-shadow: 0 15px 30px rgba(0, 255, 255, 0.2); }
+    .icon { font-size: 3rem; margin-bottom: 15px; }
+    .card-title { font-family: 'Orbitron', monospace; font-size: 1.4rem; margin-bottom: 10px; color: #00ffff; }
+    .btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 25px; color: white; padding: 12px 30px; font-size: 1rem; font-weight: 600; cursor: pointer; margin: 5px; }
+    .btn:hover { transform: scale(1.05); }
+    .status-bar { background: rgba(0, 0, 0, 0.3); border-radius: 15px; padding: 20px; margin-top: 30px; }
+    .status-text { font-family: 'Orbitron', monospace; color: #00ff88; font-size: 1rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="glow-title">LOOK-Y</h1>
+      <p class="subtitle">Carro guia del Campus</p>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <span class="icon">🎤</span>
+        <h3 class="card-title">VOZ A TEXTO</h3>
+        <p class="card-desc">Habla y convierte tu voz en texto</p>
+        <button class="btn" onclick="abrirPantalla('voz_a_texto')">ACTIVAR</button>
+      </div>
+
+      <div class="card">
+        <span class="icon">🔊</span>
+        <h3 class="card-title">TEXTO A VOZ</h3>
+        <p class="card-desc">Escribe y convierte a audio</p>
+        <button class="btn" onclick="abrirPantalla('texto_a_voz')">CONVERTIR</button>
+      </div>
+
+      <div class="card">
+        <span class="icon">🌐</span>
+        <h3 class="card-title">TRADUCTOR VOZ</h3>
+        <p class="card-desc">Traduce tu voz a otros idiomas</p>
+        <button class="btn" onclick="abrirPantalla('voz_traductor')">TRADUCIR</button>
+      </div>
+
+      <div class="card">
+        <span class="icon">📝</span>
+        <h3 class="card-title">TRADUCTOR TEXTO</h3>
+        <p class="card-desc">Traduce texto escrito</p>
+        <button class="btn" onclick="abrirPantalla('texto_traducido')">TRADUCIR</button>
+      </div>
+
+      <div class="card">
+        <span class="icon">👌</span>
+        <h3 class="card-title">LENGUAJE DE SEÑAS</h3>
+        <p class="card-desc">Reconoce lenguaje de señas</p>
+        <button class="btn" onclick="abrirPantalla('lenguaje_senas')">INICIAR</button>
+      </div>
+
+      <div class="card">
+        <span class="icon">🚗</span>
+        <h3 class="card-title">CONTROL DEL CARRO</h3>
+        <p class="card-desc">Controla el movimiento del carro</p>
+        <button class="btn" onclick="abrirPantalla('control_carro')">CONTROLAR</button>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <p class="status-text" id="status">🟢 SISTEMA CONECTADO | LOOK-Y ACTIVO</p>
+    </div>
+  </div>
+
+  <script>
+    function abrirPantalla(pantalla) {
+      window.location.href = '/' + pantalla;
+    }
+  </script>
+</body>
+</html>

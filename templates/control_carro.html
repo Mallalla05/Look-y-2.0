@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control del Carro | Look-y</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0c0c2d 0%, #1a1a3e 50%, #2d1a4b 100%); font-family: 'Exo 2', sans-serif; color: #ffffff; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .glow-title { font-family: 'Orbitron', monospace; font-size: 2.5rem; background: linear-gradient(45deg, #00ff88, #00cc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .content { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; text-align: center; }
+    .btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 25px; color: white; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin: 10px; }
+    .btn-stop { background: linear-gradient(45deg, #ff4444, #cc0000); }
+    .btn-back { background: linear-gradient(45deg, #666666, #888888); }
+    .control-panel { display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 15px; margin: 30px 0; }
+    .control-btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 15px; color: white; font-size: 1.5rem; cursor: pointer; padding: 20px; transition: all 0.2s ease; }
+    .control-btn:hover { transform: scale(1.05); background: linear-gradient(45deg, #00ccff, #0080ff); }
+    .control-btn:active { transform: scale(0.95); }
+    .btn-up { grid-column: 2; grid-row: 1; }
+    .btn-left { grid-column: 1; grid-row: 2; }
+    .btn-stop-main { grid-column: 2; grid-row: 2; background: linear-gradient(45deg, #ff4444, #cc0000); }
+    .btn-right { grid-column: 3; grid-row: 2; }
+    .btn-down { grid-column: 2; grid-row: 3; }
+    .status { font-family: 'Orbitron', monospace; color: #00ff88; margin: 20px 0; }
+    .speed-control { margin: 20px 0; }
+    .speed-slider { width: 100%; margin: 10px 0; }
+    .connection-status { background: rgba(0, 0, 0, 0.3); border-radius: 15px; padding: 15px; margin: 15px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="glow-title">🚗 CONTROL DEL CARRO</h1>
+      <p>Control remoto del carro guía Look-y</p>
+    </div>
+
+    <div class="content">
+      <div class="status" id="status">🟢 Carro conectado y listo</div>
+      
+      <div class="connection-status">
+        <strong>Estado de conexión:</strong>
+        <div id="connectionInfo">Batería: 85% | Señal: Excelente</div>
+      </div>
+
+      <div class="speed-control">
+        <label for="speedSlider">Velocidad: <span id="speedValue">50%</span></label>
+        <input type="range" id="speedSlider" class="speed-slider" min="10" max="100" value="50">
+      </div>
+
+      <div class="control-panel">
+        <button class="control-btn btn-up" onclick="moverCarro('adelante')">↑</button>
+        <button class="control-btn btn-left" onclick="moverCarro('izquierda')">←</button>
+        <button class="control-btn btn-stop-main" onclick="detenerCarro()">⏹️</button>
+        <button class="control-btn btn-right" onclick="moverCarro('derecha')">→</button>
+        <button class="control-btn btn-down" onclick="moverCarro('atras')">↓</button>
+      </div>
+
+      <div style="margin: 20px 0;">
+        <button class="btn" onclick="activarModoAutonomo()">🤖 MODO AUTÓNOMO</button>
+        <button class="btn btn-stop" onclick="detenerEmergencia()">🚨 PARADA DE EMERGENCIA</button>
+      </div>
+
+      <div class="status" id="movementStatus">Esperando comandos...</div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn btn-back" onclick="volverInicio()">← VOLVER AL INICIO</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let velocidadActual = 50;
+    let carroActivo = true;
+
+    // Control de velocidad
+    document.getElementById('speedSlider').addEventListener('input', function(e) {
+      velocidadActual = e.target.value;
+      document.getElementById('speedValue').textContent = velocidadActual + '%';
+      actualizarVelocidad(velocidadActual);
+    });
+
+    function moverCarro(direccion) {
+      if (!carroActivo) return;
+      
+      const movimientos = {
+        'adelante': '🔼 Avanzando hacia adelante',
+        'atras': '🔽 Retrocediendo',
+        'izquierda': '◀️ Girando a la izquierda',
+        'derecha': '▶️ Girando a la derecha'
+      };
+      
+      document.getElementById('movementStatus').textContent = movimientos[direccion];
+      document.getElementById('movementStatus').style.color = '#00ff88';
+      
+      // Enviar comando al servidor
+      fetch('/control_carro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direccion: direccion, velocidad: velocidadActual })
+      })
+      .then(response => response.json())
+      .then(data => {
+        console.log('Respuesta del servidor:', data);
+      })
+      .catch(error => {
+        console.error('Error enviando comando:', error);
+      });
+    }
+
+    function detenerCarro() {
+      document.getElementById('movementStatus').textContent = '⏹️ Carro detenido';
+      document.getElementById('movementStatus').style.color = '#ffaa00';
+      
+      fetch('/control_carro', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direccion: 'detener', velocidad: 0 })
+      });
+    }
+
+    function activarModoAutonomo() {
+      document.getElementById('status').textContent = '🤖 Modo autónomo activado';
+      document.getElementById('movementStatus').textContent = 'Navegando automáticamente...';
+      
+      fetch('/modo_autonomo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activado: true })
+      });
+    }
+
+    function detenerEmergencia() {
+      carroActivo = false;
+      document.getElementById('status').textContent = '🚨 PARADA DE EMERGENCIA ACTIVADA';
+      document.getElementById('status').style.color = '#ff4444';
+      document.getElementById('movementStatus').textContent = 'SISTEMA BLOQUEADO - EMERGENCIA';
+      
+      fetch('/emergencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emergencia: true })
+      });
+      
+      // Reactivar después de 3 segundos
+      setTimeout(() => {
+        carroActivo = true;
+        document.getElementById('status').textContent = '🟢 Carro conectado y listo';
+        document.getElementById('status').style.color = '#00ff88';
+        document.getElementById('movementStatus').textContent = 'Sistema reestablecido';
+      }, 3000);
+    }
+
+    function actualizarVelocidad(velocidad) {
+      fetch('/actualizar_velocidad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ velocidad: velocidad })
+      });
+    }
+
+    function volverInicio() {
+      window.location.href = '/';
+    }
+
+    // Simular actualización de estado de conexión
+    setInterval(() => {
+      fetch('/estado_carro')
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('connectionInfo').textContent = 
+            `Batería: ${data.bateria}% | Señal: ${data.senal}`;
+        })
+        .catch(error => {
+          console.error('Error obteniendo estado:', error);
+        });
+    }, 5000);
+  </script>
+</body>
+</html>

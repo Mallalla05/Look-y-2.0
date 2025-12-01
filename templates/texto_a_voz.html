@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Texto a Voz | Look-y</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: linear-gradient(135deg, #0c0c2d 0%, #1a1a3e 50%, #2d1a4b 100%); font-family: 'Exo 2', sans-serif; color: #ffffff; min-height: 100vh; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .glow-title { font-family: 'Orbitron', monospace; font-size: 2.5rem; background: linear-gradient(45deg, #00ff88, #00cc00); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .content { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; }
+    .btn { background: linear-gradient(45deg, #0080ff, #00ccff); border: none; border-radius: 25px; color: white; padding: 15px 30px; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin: 10px; }
+    .btn-back { background: linear-gradient(45deg, #666666, #888888); }
+    textarea { width: 100%; height: 150px; padding: 15px; border: 1px solid #00ccff; border-radius: 10px; background: rgba(0, 0, 0, 0.3); color: white; font-size: 1rem; margin: 15px 0; resize: vertical; }
+    .status { font-family: 'Orbitron', monospace; color: #00ff88; margin: 10px 0; text-align: center; }
+    .respuesta { background: rgba(0, 255, 255, 0.1); border: 1px solid #00ffff; border-radius: 10px; padding: 15px; margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="glow-title">🔊 TEXTO A VOZ</h1>
+      <p>Escribe y convierte a audio</p>
+    </div>
+
+    <div class="content">
+      <div class="status" id="status">✏️ Escribe tu texto abajo</div>
+      
+      <textarea id="textoInput" placeholder="Escribe aquí el texto que quieres convertir a voz..."></textarea>
+      
+      <div style="text-align: center;">
+        <button class="btn" onclick="convertirTexto()">🔊 CONVERTIR A VOZ</button>
+        <button class="btn" onclick="probarVoz()">▶️ PROBAR VOZ</button>
+      </div>
+
+      <div class="respuesta" id="respuesta">
+        Esperando conversión...
+      </div>
+
+      <div style="text-align: center; margin-top: 20px;">
+        <button class="btn btn-back" onclick="volverInicio()">← VOLVER AL INICIO</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function convertirTexto() {
+      const texto = document.getElementById('textoInput').value;
+      if (texto.trim() === '') {
+        alert('Por favor escribe algún texto');
+        return;
+      }
+
+      document.getElementById('status').textContent = '🔄 Convirtiendo texto a voz...';
+      document.getElementById('status').style.color = '#ffaa00';
+      document.getElementById('respuesta').textContent = 'Procesando...';
+
+      fetch('/ejecutar_texto_a_voz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: texto })
+      })
+      .then(response => response.text())
+      .then(data => {
+        document.getElementById('respuesta').textContent = data;
+        document.getElementById('status').textContent = '✅ Conversión completada';
+        document.getElementById('status').style.color = '#00ff88';
+      })
+      .catch(error => {
+        document.getElementById('respuesta').textContent = '❌ Error: ' + error;
+        document.getElementById('status').textContent = '❌ Error al convertir';
+        document.getElementById('status').style.color = '#ff4444';
+      });
+    }
+
+    function probarVoz() {
+      const texto = document.getElementById('textoInput').value;
+      if (texto.trim() === '') {
+        alert('Por favor escribe algún texto primero');
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(texto);
+      utterance.lang = 'es-ES';
+      speechSynthesis.speak(utterance);
+    }
+
+    function volverInicio() {
+      window.location.href = '/';
+    }
+  </script>
+</body>
+</html>
